@@ -61,7 +61,7 @@ func (m *mkcert) makeCert(hosts []string) {
 	expiration := time.Now().AddDate(2, 3, 0)
 
 	leafOrg := "mkcert development certificate"
-	leafOrgUnit := userAndHostname
+	leafOrgUnit := ""
 	if m.certOrg != "" {
 		leafOrg = m.certOrg
 	}
