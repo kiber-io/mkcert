@@ -81,6 +81,10 @@ func (m *mkcert) makeCert(hosts []string) {
 		KeyUsage: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 	}
 
+	if len(hosts) > 0 {
+		tpl.Subject.CommonName = hosts[0]
+	}
+
 	for _, h := range hosts {
 		if ip := net.ParseIP(h); ip != nil {
 			tpl.IPAddresses = append(tpl.IPAddresses, ip)
