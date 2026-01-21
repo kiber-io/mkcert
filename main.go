@@ -47,18 +47,18 @@ const shortUsage = `Usage of mkcert:
 	$ mkcert -uninstall
 	Uninstall the local CA (but do not delete it).
 
-	$ mkcert -generate-ca -ca-name "My Dev CA" -ca-org-unit "My Team" -ca-validity-years 5
-	Generate a local CA with custom subject and validity without installing it.
-
-	$ mkcert -cert-org "My Dev Certs" -cert-org-unit "Backend Team" example.test
-	Generate a leaf certificate with custom subject fields.
-
 `
 
 const advancedUsage = `Advanced options:
 
 	-cert-file FILE, -key-file FILE, -p12-file FILE
 	    Customize the output paths.
+
+	-out-dir DIR
+	    Customize the output directory for generated certificates.
+
+	-cert-file-name NAME, -key-file-name NAME, -p12-file-name NAME
+	    Customize output filenames. Requires -out-dir.
 
 	-client
 	    Generate a certificate for client authentication.
@@ -76,15 +76,6 @@ const advancedUsage = `Advanced options:
 
 	-CAROOT
 	    Print the CA certificate and key storage location.
-
-	$CAROOT (environment variable)
-	    Set the CA certificate and key storage location. (This allows
-	    maintaining multiple local CAs in parallel.)
-
-	$TRUST_STORES (environment variable)
-	    A comma-separated list of trust stores to install the local
-	    root CA into. Options are: "system", "java" and "nss" (includes
-	    Firefox). Autodetected by default.
 
 	-ca-name NAME
 	    Customize the root CA certificate Common Name and Organization
@@ -106,6 +97,18 @@ const advancedUsage = `Advanced options:
 
 	-cert-org-unit NAME
 	    Customize the leaf certificate Organizational Unit field.
+
+	$CAROOT (environment variable)
+	    Set the CA certificate and key storage location. (This allows
+	    maintaining multiple local CAs in parallel.)
+
+	$CERTDIR (environment variable)
+	    Set the default output directory for generated certificates.
+
+	$TRUST_STORES (environment variable)
+	    A comma-separated list of trust stores to install the local
+	    root CA into. Options are: "system", "java" and "nss" (includes
+	    Firefox). Autodetected by default.
 
 `
 
@@ -132,6 +135,10 @@ func main() {
 		certFileFlag  = flag.String("cert-file", "", "")
 		keyFileFlag   = flag.String("key-file", "", "")
 		p12FileFlag   = flag.String("p12-file", "", "")
+		outDirFlag    = flag.String("out-dir", "", "")
+		certNameFlag  = flag.String("cert-file-name", "", "")
+		keyNameFlag   = flag.String("key-file-name", "", "")
+		p12NameFlag   = flag.String("p12-file-name", "", "")
 		caNameFlag    = flag.String("ca-name", "", "")
 		caYearsFlag   = flag.Int("ca-validity-years", 10, "")
 		caOrgUnitFlag = flag.String("ca-org-unit", "", "")
@@ -178,6 +185,15 @@ func main() {
 	if *csrFlag != "" && flag.NArg() != 0 {
 		log.Fatalln("ERROR: can't specify extra arguments when using -csr")
 	}
+	if *certFileFlag != "" && *certNameFlag != "" {
+		log.Fatalln("ERROR: can't combine -cert-file and -cert-file-name")
+	}
+	if *keyFileFlag != "" && *keyNameFlag != "" {
+		log.Fatalln("ERROR: can't combine -key-file and -key-file-name")
+	}
+	if *p12FileFlag != "" && *p12NameFlag != "" {
+		log.Fatalln("ERROR: can't combine -p12-file and -p12-file-name")
+	}
 	if *genCAFlag && (*installFlag || *uninstallFlag || *csrFlag != "" || flag.NArg() != 0) {
 		log.Fatalln("ERROR: -generate-ca can't be combined with other actions or arguments")
 	}
@@ -188,6 +204,8 @@ func main() {
 		installMode: *installFlag, uninstallMode: *uninstallFlag, csrPath: *csrFlag,
 		pkcs12: *pkcs12Flag, ecdsa: *ecdsaFlag, client: *clientFlag,
 		certFile: *certFileFlag, keyFile: *keyFileFlag, p12File: *p12FileFlag,
+		outDir:       *outDirFlag,
+		certFileName: *certNameFlag, keyFileName: *keyNameFlag, p12FileName: *p12NameFlag,
 		caName: *caNameFlag, caOrgUnit: *caOrgUnitFlag, caValidityYears: *caYearsFlag,
 		certOrg: *certOrgFlag, certOrgUnit: *certOUFlag,
 		generateCA: *genCAFlag,
@@ -201,6 +219,10 @@ type mkcert struct {
 	installMode, uninstallMode bool
 	pkcs12, ecdsa, client      bool
 	keyFile, certFile, p12File string
+	outDir                     string
+	certFileName               string
+	keyFileName                string
+	p12FileName                string
 	csrPath                    string
 	caName                     string
 	caOrgUnit                  string

@@ -114,6 +114,9 @@ func (m *mkcert) makeCert(hosts []string) {
 	fatalIfErr(err, "failed to generate certificate")
 
 	certFile, keyFile, p12File := m.fileNames(hosts)
+	fatalIfErr(ensureParentDir(certFile), "failed to create output directory for certificate")
+	fatalIfErr(ensureParentDir(keyFile), "failed to create output directory for certificate key")
+	fatalIfErr(ensureParentDir(p12File), "failed to create output directory for PKCS#12")
 
 	if !m.pkcs12 {
 		certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert})
@@ -192,20 +195,60 @@ func (m *mkcert) fileNames(hosts []string) (certFile, keyFile, p12File string) {
 		defaultName += "-client"
 	}
 
-	certFile = "./" + defaultName + ".pem"
+	outDir := m.outDir
+	if outDir == "" {
+		outDir = getCERTDIR()
+	}
+	certName := defaultName + ".pem"
+	if m.certFileName != "" {
+		certName = m.certFileName
+	}
+	if outDir != "" {
+		certFile = filepath.Join(outDir, certName)
+	} else {
+		certFile = "./" + certName
+	}
 	if m.certFile != "" {
 		certFile = m.certFile
 	}
-	keyFile = "./" + defaultName + "-key.pem"
+	keyName := defaultName + "-key.pem"
+	if m.keyFileName != "" {
+		keyName = m.keyFileName
+	}
+	if outDir != "" {
+		keyFile = filepath.Join(outDir, keyName)
+	} else {
+		keyFile = "./" + keyName
+	}
 	if m.keyFile != "" {
 		keyFile = m.keyFile
 	}
-	p12File = "./" + defaultName + ".p12"
+	p12Name := defaultName + ".p12"
+	if m.p12FileName != "" {
+		p12Name = m.p12FileName
+	}
+	if outDir != "" {
+		p12File = filepath.Join(outDir, p12Name)
+	} else {
+		p12File = "./" + p12Name
+	}
 	if m.p12File != "" {
 		p12File = m.p12File
 	}
 
 	return
+}
+
+func getCERTDIR() string {
+	return os.Getenv("CERTDIR")
+}
+
+func ensureParentDir(path string) error {
+	dir := filepath.Dir(path)
+	if dir == "." || dir == "" {
+		return nil
+	}
+	return os.MkdirAll(dir, 0755)
 }
 
 func randomSerialNumber() *big.Int {
@@ -275,6 +318,7 @@ func (m *mkcert) makeCertFromCSR() {
 		hosts = append(hosts, uri.String())
 	}
 	certFile, _, _ := m.fileNames(hosts)
+	fatalIfErr(ensureParentDir(certFile), "failed to create output directory for certificate")
 
 	err = ioutil.WriteFile(certFile, pem.EncodeToMemory(
 		&pem.Block{Type: "CERTIFICATE", Bytes: cert}), 0644)
