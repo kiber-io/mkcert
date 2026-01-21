@@ -32,6 +32,9 @@ const shortUsage = `Usage of mkcert:
 	$ mkcert -install
 	Install the local CA in the system trust store.
 
+	$ mkcert -generate-ca
+	Generate the local CA without installing it.
+
 	$ mkcert example.org
 	Generate "example.org.pem" and "example.org-key.pem".
 
@@ -43,6 +46,12 @@ const shortUsage = `Usage of mkcert:
 
 	$ mkcert -uninstall
 	Uninstall the local CA (but do not delete it).
+
+	$ mkcert -generate-ca -ca-name "My Dev CA" -ca-org-unit "My Team" -ca-validity-years 5
+	Generate a local CA with custom subject and validity without installing it.
+
+	$ mkcert -cert-org "My Dev Certs" -cert-org-unit "Backend Team" example.test
+	Generate a leaf certificate with custom subject fields.
 
 `
 
@@ -89,6 +98,9 @@ const advancedUsage = `Advanced options:
 	    Customize the root CA certificate Organizational Unit.
 	    Only applies when creating a new local CA.
 
+	-generate-ca
+	    Generate a new local CA without installing it.
+
 	-cert-org NAME
 	    Customize the leaf certificate Organization field.
 
@@ -123,6 +135,7 @@ func main() {
 		caNameFlag    = flag.String("ca-name", "", "")
 		caYearsFlag   = flag.Int("ca-validity-years", 10, "")
 		caOrgUnitFlag = flag.String("ca-org-unit", "", "")
+		genCAFlag     = flag.Bool("generate-ca", false, "")
 		certOrgFlag   = flag.String("cert-org", "", "")
 		certOUFlag    = flag.String("cert-org-unit", "", "")
 		versionFlag   = flag.Bool("version", false, "")
@@ -165,6 +178,9 @@ func main() {
 	if *csrFlag != "" && flag.NArg() != 0 {
 		log.Fatalln("ERROR: can't specify extra arguments when using -csr")
 	}
+	if *genCAFlag && (*installFlag || *uninstallFlag || *csrFlag != "" || flag.NArg() != 0) {
+		log.Fatalln("ERROR: -generate-ca can't be combined with other actions or arguments")
+	}
 	if *caYearsFlag <= 0 {
 		log.Fatalln("ERROR: -ca-validity-years must be a positive integer")
 	}
@@ -174,6 +190,7 @@ func main() {
 		certFile: *certFileFlag, keyFile: *keyFileFlag, p12File: *p12FileFlag,
 		caName: *caNameFlag, caOrgUnit: *caOrgUnitFlag, caValidityYears: *caYearsFlag,
 		certOrg: *certOrgFlag, certOrgUnit: *certOUFlag,
+		generateCA: *genCAFlag,
 	}).Run(flag.Args())
 }
 
@@ -190,6 +207,7 @@ type mkcert struct {
 	caValidityYears            int
 	certOrg                    string
 	certOrgUnit                string
+	generateCA                 bool
 
 	CAROOT string
 	caCert *x509.Certificate
@@ -207,6 +225,15 @@ func (m *mkcert) Run(args []string) {
 		log.Fatalln("ERROR: failed to find the default CA location, set one as the CAROOT env var")
 	}
 	fatalIfErr(os.MkdirAll(m.CAROOT, 0755), "failed to create the CAROOT")
+
+	if m.generateCA {
+		if pathExists(filepath.Join(m.CAROOT, rootName)) || pathExists(filepath.Join(m.CAROOT, rootKeyName)) {
+			log.Fatalln("ERROR: local CA already exists; remove it or set CAROOT to a new location")
+		}
+		m.newCA()
+		return
+	}
+
 	m.loadCA()
 
 	if m.installMode {
