@@ -61,11 +61,20 @@ func (m *mkcert) makeCert(hosts []string) {
 	// including custom roots. See https://support.apple.com/en-us/HT210176.
 	expiration := time.Now().AddDate(2, 3, 0)
 
+	leafOrg := "mkcert development certificate"
+	leafOrgUnit := userAndHostname
+	if m.certOrg != "" {
+		leafOrg = m.certOrg
+	}
+	if m.certOrgUnit != "" {
+		leafOrgUnit = m.certOrgUnit
+	}
+
 	tpl := &x509.Certificate{
 		SerialNumber: randomSerialNumber(),
 		Subject: pkix.Name{
-			Organization:       []string{"mkcert development certificate"},
-			OrganizationalUnit: []string{userAndHostname},
+			Organization:       []string{leafOrg},
+			OrganizationalUnit: []string{leafOrgUnit},
 		},
 
 		NotBefore: time.Now(), NotAfter: expiration,
@@ -324,20 +333,31 @@ func (m *mkcert) newCA() {
 
 	skid := sha1.Sum(spki.SubjectPublicKey.Bytes)
 
+	caName := "mkcert development CA"
+	commonName := "mkcert " + userAndHostname
+	orgUnit := userAndHostname
+	if m.caName != "" {
+		caName = m.caName
+		commonName = m.caName
+	}
+	if m.caOrgUnit != "" {
+		orgUnit = m.caOrgUnit
+	}
+
 	tpl := &x509.Certificate{
 		SerialNumber: randomSerialNumber(),
 		Subject: pkix.Name{
-			Organization:       []string{"mkcert development CA"},
-			OrganizationalUnit: []string{userAndHostname},
+			Organization:       []string{caName},
+			OrganizationalUnit: []string{orgUnit},
 
 			// The CommonName is required by iOS to show the certificate in the
 			// "Certificate Trust Settings" menu.
 			// https://github.com/FiloSottile/mkcert/issues/47
-			CommonName: "mkcert " + userAndHostname,
+			CommonName: commonName,
 		},
 		SubjectKeyId: skid[:],
 
-		NotAfter:  time.Now().AddDate(10, 0, 0),
+		NotAfter:  time.Now().AddDate(m.caValidityYears, 0, 0),
 		NotBefore: time.Now(),
 
 		KeyUsage: x509.KeyUsageCertSign,

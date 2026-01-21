@@ -77,6 +77,24 @@ const advancedUsage = `Advanced options:
 	    root CA into. Options are: "system", "java" and "nss" (includes
 	    Firefox). Autodetected by default.
 
+	-ca-name NAME
+	    Customize the root CA certificate Common Name and Organization
+	    when creating a new local CA.
+
+	-ca-validity-years N
+	    Customize the root CA certificate validity period in years.
+	    Only applies when creating a new local CA.
+
+	-ca-org-unit NAME
+	    Customize the root CA certificate Organizational Unit.
+	    Only applies when creating a new local CA.
+
+	-cert-org NAME
+	    Customize the leaf certificate Organization field.
+
+	-cert-org-unit NAME
+	    Customize the leaf certificate Organizational Unit field.
+
 `
 
 // Version can be set at link time to override debug.BuildInfo.Main.Version,
@@ -102,6 +120,11 @@ func main() {
 		certFileFlag  = flag.String("cert-file", "", "")
 		keyFileFlag   = flag.String("key-file", "", "")
 		p12FileFlag   = flag.String("p12-file", "", "")
+		caNameFlag    = flag.String("ca-name", "", "")
+		caYearsFlag   = flag.Int("ca-validity-years", 10, "")
+		caOrgUnitFlag = flag.String("ca-org-unit", "", "")
+		certOrgFlag   = flag.String("cert-org", "", "")
+		certOUFlag    = flag.String("cert-org-unit", "", "")
 		versionFlag   = flag.Bool("version", false, "")
 	)
 	flag.Usage = func() {
@@ -142,10 +165,15 @@ func main() {
 	if *csrFlag != "" && flag.NArg() != 0 {
 		log.Fatalln("ERROR: can't specify extra arguments when using -csr")
 	}
+	if *caYearsFlag <= 0 {
+		log.Fatalln("ERROR: -ca-validity-years must be a positive integer")
+	}
 	(&mkcert{
 		installMode: *installFlag, uninstallMode: *uninstallFlag, csrPath: *csrFlag,
 		pkcs12: *pkcs12Flag, ecdsa: *ecdsaFlag, client: *clientFlag,
 		certFile: *certFileFlag, keyFile: *keyFileFlag, p12File: *p12FileFlag,
+		caName: *caNameFlag, caOrgUnit: *caOrgUnitFlag, caValidityYears: *caYearsFlag,
+		certOrg: *certOrgFlag, certOrgUnit: *certOUFlag,
 	}).Run(flag.Args())
 }
 
@@ -157,6 +185,11 @@ type mkcert struct {
 	pkcs12, ecdsa, client      bool
 	keyFile, certFile, p12File string
 	csrPath                    string
+	caName                     string
+	caOrgUnit                  string
+	caValidityYears            int
+	certOrg                    string
+	certOrgUnit                string
 
 	CAROOT string
 	caCert *x509.Certificate
