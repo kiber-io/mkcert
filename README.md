@@ -2,6 +2,8 @@
 
 mkcert is a simple tool for making locally-trusted development certificates. It requires no configuration.
 
+This fork adds customization flags for the root CA and leaf certificate subjects, output directory control, and a mode to generate a local CA without installing it.
+
 ```
 $ mkcert -install
 Created a new local CA 💥
