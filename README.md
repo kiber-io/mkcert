@@ -132,6 +132,12 @@ To only install the local root CA into a subset of them, you can set the `TRUST_
 	-cert-file FILE, -key-file FILE, -p12-file FILE
 	    Customize the output paths.
 
+	-out-dir DIR
+	    Customize the output directory for generated certificates.
+
+	-cert-file-name NAME, -key-file-name NAME, -p12-file-name NAME
+	    Customize output filenames. Requires -out-dir.
+
 	-client
 	    Generate a certificate for client authentication.
 
@@ -145,6 +151,27 @@ To only install the local root CA into a subset of them, you can set the `TRUST_
 	-csr CSR
 	    Generate a certificate based on the supplied CSR. Conflicts with
 	    all other flags and arguments except -install and -cert-file.
+
+	-ca-name NAME
+	    Customize the root CA certificate Common Name and Organization
+	    when creating a new local CA.
+
+	-ca-validity-years N
+	    Customize the root CA certificate validity period in years.
+	    Only applies when creating a new local CA.
+
+	-ca-org-unit NAME
+	    Customize the root CA certificate Organizational Unit.
+	    Only applies when creating a new local CA.
+
+	-generate-ca
+	    Generate a new local CA without installing it.
+
+	-cert-org NAME
+	    Customize the leaf certificate Organization field.
+
+	-cert-org-unit NAME
+	    Customize the leaf certificate Organizational Unit field.
 ```
 
 > **Note:** You _must_ place these options before the domain names list.
@@ -152,7 +179,7 @@ To only install the local root CA into a subset of them, you can set the `TRUST_
 #### Example
 
 ```
-mkcert -key-file key.pem -cert-file cert.pem example.com *.example.com
+mkcert -out-dir ./certs -cert-file-name cert.pem -key-file-name key.pem example.com *.example.com
 ```
 
 ### S/MIME
@@ -184,6 +211,8 @@ export NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"
 The CA certificate and its key are stored in an application data folder in the user home. You usually don't have to worry about it, as installation is automated, but the location is printed by `mkcert -CAROOT`.
 
 If you want to manage separate CAs, you can use the environment variable `$CAROOT` to set the folder where mkcert will place and look for the local CA files.
+
+To change the output directory for generated leaf certificates, use `-out-dir` or set the `$CERTDIR` environment variable.
 
 ### Installing the CA on other systems
 
