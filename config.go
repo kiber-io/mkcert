@@ -29,7 +29,6 @@ type caConfig struct {
 	CommonName    string `toml:"common_name"`
 	OrgUnit       string `toml:"organizational_unit"`
 	ValidityDays  int    `toml:"validity_days"`
-	ValidityYears int    `toml:"validity_years"`
 }
 
 type leafConfig struct {

@@ -311,6 +311,13 @@ func parseKeyUsage(names []string) (x509.KeyUsage, error) {
 	return ku, nil
 }
 
+func caNotAfter(m *mkcert) time.Time {
+	if m.caValidityDays > 0 {
+		return time.Now().AddDate(0, 0, m.caValidityDays)
+	}
+	return time.Now()
+}
+
 func (m *mkcert) makeCertFromCSR() {
 	if m.caKey == nil {
 		log.Fatalln("ERROR: can't create new certificates because the CA key (rootCA-key.pem) is missing")
@@ -466,7 +473,7 @@ func (m *mkcert) newCA() {
 		},
 		SubjectKeyId: skid[:],
 
-		NotAfter:  time.Now().AddDate(0, 0, m.caValidityDays),
+		NotAfter:  caNotAfter(m),
 		NotBefore: time.Now(),
 
 		KeyUsage: x509.KeyUsageCertSign,

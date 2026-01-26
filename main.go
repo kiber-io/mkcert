@@ -91,8 +91,8 @@ const advancedUsage = `Advanced options:
 	-ca-common-name NAME
 	    Customize the root CA certificate Common Name.
 
-	-ca-validity-years N
-	    Customize the root CA certificate validity period in years.
+	-ca-validity-days N
+	    Customize the root CA certificate validity period in days.
 	    Only applies when creating a new local CA.
 
 	-ca-org-unit NAME
@@ -146,7 +146,7 @@ func main() {
 		configFlag       = flag.String("config", "mkcert.toml", "")
 		caNameFlag       = flag.String("ca-organization", "", "")
 		caCommonNameFlag = flag.String("ca-common-name", "", "")
-		caYearsFlag      = flag.Int("ca-validity-years", 10, "")
+		caDaysFlag       = flag.Int("ca-validity-days", 3650, "")
 		caOrgUnitFlag    = flag.String("ca-org-unit", "", "")
 		genCAFlag        = flag.Bool("generate-ca", false, "")
 		certOrgFlag      = flag.String("cert-org", "", "")
@@ -242,27 +242,14 @@ func main() {
 		log.Fatalln("ERROR: cert-validity-days must be a positive integer")
 	}
 
-	caYears := *caYearsFlag
-	caDays := 0
-	caDaysSet := false
-	caYearsSet := false
-	if !setFlags["ca-validity-years"] {
+	caDays := *caDaysFlag
+	if !setFlags["ca-validity-days"] {
 		if cfg.CA.ValidityDays > 0 {
 			caDays = cfg.CA.ValidityDays
-			caDaysSet = true
-		} else if cfg.CA.ValidityYears > 0 {
-			caYears = cfg.CA.ValidityYears
-			caYearsSet = true
 		}
 	}
-	if caDaysSet && caDays <= 0 {
-		log.Fatalln("ERROR: ca.validity-days must be a positive integer")
-	}
-	if caYearsSet && caYears <= 0 {
-		log.Fatalln("ERROR: ca-validity-years must be a positive integer")
-	}
-	if caDays <= 0 && caYears <= 0 {
-		log.Fatalln("ERROR: ca-validity-years must be a positive integer")
+	if caDays <= 0 {
+		log.Fatalln("ERROR: ca-validity-days must be a positive integer")
 	}
 
 	caName := *caNameFlag

@@ -184,8 +184,8 @@ To only install the local root CA into a subset of them, use `-trust-stores` (co
 	-ca-common-name NAME
 	    Customize the root CA certificate Common Name.
 
-	-ca-validity-years N
-	    Customize the root CA certificate validity period in years.
+	-ca-validity-days N
+	    Customize the root CA certificate validity period in days.
 	    Only applies when creating a new local CA.
 
 	-ca-org-unit NAME

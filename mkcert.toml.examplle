@@ -17,9 +17,8 @@ common_name = "My Dev CA"
 # Root CA Organizational Unit (Subject OU).
 organizational_unit = "My Team"
 
-# Root CA validity period. Use one of the options below.
-# validity_days = 3650
-validity_years = 10
+# Root CA validity period in days.
+validity_days = 3650
 
 [leaf]
 # Leaf certificate Organization (Subject O).
