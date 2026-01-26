@@ -4,6 +4,22 @@ mkcert is a simple tool for making locally-trusted development certificates. It 
 
 This fork adds customization flags for the root CA and leaf certificate subjects, output directory control, and a mode to generate a local CA without installing it.
 
+## Fork features
+Highlights:
+- Config file support via `mkcert.toml` next to the binary or `-config`.
+- Root CA customization: organization, common name, org unit, validity.
+- Leaf customization: organization, org unit, validity, and per‑profile overrides (server/client).
+- Trust store selection via config or CLI.
+- Output customization: target directory and output filenames.
+- Leaf CN uses the first SAN; default leaf OU is empty unless set.
+- Optional key usage overrides for leaf server/client in config.
+
+Breaking changes vs upstream:
+- Removed env vars `CAROOT`, `CERTDIR`, `TRUST_STORES` (use config or CLI flags instead).
+- Removed `-CAROOT` flag.
+- Config format is TOML with snake_case keys and sections as above.
+- Default leaf validity reduced to 398 days to [match Android limits](https://cs.android.com/android/platform/superproject/main/+/main:external/cronet/tot/net/cert/cert_verify_proc.cc;l=827;drc=61197364367c9e404c7da6900658f1b16c42d0da).
+
 ```
 $ mkcert -install
 Created a new local CA 💥
