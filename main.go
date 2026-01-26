@@ -108,13 +108,6 @@ const advancedUsage = `Advanced options:
 	-cert-org-unit NAME
 	    Customize the leaf certificate Organizational Unit field.
 
-	$CAROOT (environment variable)
-	    Set the CA certificate and key storage location. (This allows
-	    maintaining multiple local CAs in parallel.)
-
-	$CERTDIR (environment variable)
-	    Set the default output directory for generated certificates.
-
 	$TRUST_STORES (environment variable)
 	    A comma-separated list of trust stores to install the local
 	    root CA into. Options are: "system", "java" and "nss" (includes
@@ -457,9 +450,6 @@ func (m *mkcert) Run(args []string) {
 }
 
 func getCAROOT() string {
-	if env := os.Getenv("CAROOT"); env != "" {
-		return env
-	}
 	if cfg := getConfig(); cfg != nil {
 		if cfg.Paths.CAROOT != "" {
 			return cfg.Paths.CAROOT

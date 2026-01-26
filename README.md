@@ -222,9 +222,9 @@ export NODE_EXTRA_CA_CERTS="$CAROOT/rootCA.pem"
 
 The CA certificate and its key are stored in an application data folder in the user home. You usually don't have to worry about it, as installation is automated.
 
-If you want to manage separate CAs, you can use the environment variable `$CAROOT` or set `ca_root` under `[paths]` in the config file to set the folder where mkcert will place and look for the local CA files.
+If you want to manage separate CAs, set `ca_root` under `[paths]` in the config file to set the folder where mkcert will place and look for the local CA files.
 
-To change the output directory for generated leaf certificates, use `-out-dir` or set the `$CERTDIR` environment variable (or `cert_dir` under `[paths]` in the config).
+To change the output directory for generated leaf certificates, use `-out-dir` or set `cert_dir` under `[paths]` in the config.
 
 mkcert can also read configuration values from a TOML file named `mkcert.toml` placed next to the executable, or from a custom path using `-config`. The config file uses sections; flags override config values.
 

@@ -249,9 +249,6 @@ func (m *mkcert) fileNames(hosts []string) (certFile, keyFile, p12File string) {
 }
 
 func getCERTDIR() string {
-	if env := os.Getenv("CERTDIR"); env != "" {
-		return env
-	}
 	if cfg := getConfig(); cfg != nil {
 		return cfg.Paths.CERTDIR
 	}
