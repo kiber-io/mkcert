@@ -108,10 +108,9 @@ const advancedUsage = `Advanced options:
 	-cert-org-unit NAME
 	    Customize the leaf certificate Organizational Unit field.
 
-	$TRUST_STORES (environment variable)
-	    A comma-separated list of trust stores to install the local
-	    root CA into. Options are: "system", "java" and "nss" (includes
-	    Firefox). Autodetected by default.
+	-trust-stores STORES
+	    Comma-separated list of trust stores to install the local root CA into.
+	    Options are: "system", "java" and "nss" (includes Firefox).
 
 `
 
@@ -152,6 +151,7 @@ func main() {
 		genCAFlag     = flag.Bool("generate-ca", false, "")
 		certOrgFlag   = flag.String("cert-org", "", "")
 		certOUFlag    = flag.String("cert-org-unit", "", "")
+		trustStoresFlag = flag.String("trust-stores", "", "")
 		versionFlag   = flag.Bool("version", false, "")
 	)
 	flag.Usage = func() {
@@ -211,6 +211,12 @@ func main() {
 	cfg := getConfig()
 	if cfg == nil {
 		cfg = &config{}
+	}
+	trustStores = nil
+	if setFlags["trust-stores"] && *trustStoresFlag != "" {
+		trustStores = parseTrustStores(*trustStoresFlag)
+	} else if len(cfg.Trust.Stores) > 0 {
+		trustStores = normalizeTrustStores(cfg.Trust.Stores)
 	}
 
 	certDays := *certDaysFlag
@@ -557,16 +563,50 @@ func (m *mkcert) checkPlatform() bool {
 }
 
 func storeEnabled(name string) bool {
-	stores := os.Getenv("TRUST_STORES")
-	if stores == "" {
+	if len(trustStores) == 0 {
 		return true
 	}
-	for _, store := range strings.Split(stores, ",") {
+	for _, store := range trustStores {
 		if store == name {
 			return true
 		}
 	}
 	return false
+}
+
+var trustStores []string
+
+func parseTrustStores(stores string) []string {
+	parts := strings.Split(stores, ",")
+	var out []string
+	for _, part := range parts {
+		value := strings.TrimSpace(strings.ToLower(part))
+		if value == "" {
+			continue
+		}
+		out = append(out, value)
+	}
+	return normalizeTrustStores(out)
+}
+
+func normalizeTrustStores(stores []string) []string {
+	allowed := map[string]bool{
+		"system": true,
+		"java":   true,
+		"nss":    true,
+	}
+	var out []string
+	for _, store := range stores {
+		value := strings.TrimSpace(strings.ToLower(store))
+		if value == "" {
+			continue
+		}
+		if !allowed[value] {
+			log.Fatalf("ERROR: unknown trust store %q (expected system, java, or nss)", store)
+		}
+		out = append(out, value)
+	}
+	return out
 }
 
 func fatalIfErr(err error, msg string) {

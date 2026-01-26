@@ -42,3 +42,8 @@ validity_days = 180
 # dataEncipherment, keyAgreement, certSign, crlSign, contentCommitment,
 # encipherOnly, decipherOnly.
 key_usage = ["digitalSignature"]
+
+[trust]
+# Trust stores to install the local root CA into. Options:
+# "system", "java", "nss" (includes Firefox).
+stores = ["system", "nss", "java"]

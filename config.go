@@ -16,6 +16,7 @@ type config struct {
 	Paths pathsConfig `toml:"paths"`
 	CA    caConfig    `toml:"ca"`
 	Leaf  leafConfig  `toml:"leaf"`
+	Trust trustConfig `toml:"trust"`
 }
 
 type pathsConfig struct {
@@ -42,6 +43,10 @@ type leafConfig struct {
 type leafProfile struct {
 	ValidityDays int      `toml:"validity_days"`
 	KeyUsage     []string `toml:"key_usage"`
+}
+
+type trustConfig struct {
+	Stores []string `toml:"stores"`
 }
 
 func initConfig(path string) error {

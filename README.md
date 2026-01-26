@@ -124,7 +124,7 @@ mkcert supports the following root stores:
 * Chrome and Chromium
 * Java (when `JAVA_HOME` is set)
 
-To only install the local root CA into a subset of them, you can set the `TRUST_STORES` environment variable to a comma-separated list. Options are: "system", "java" and "nss" (includes Firefox).
+To only install the local root CA into a subset of them, use `-trust-stores` (comma-separated list) or set `[trust].stores` in the config. Options are: "system", "java" and "nss" (includes Firefox).
 
 ## Advanced topics
 
