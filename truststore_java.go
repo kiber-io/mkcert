@@ -83,7 +83,7 @@ func (m *mkcert) installJava() {
 		"-importcert", "-noprompt",
 		"-keystore", cacertsPath,
 		"-storepass", storePass,
-		"-file", filepath.Join(m.CAROOT, rootName),
+		"-file", filepath.Join(m.caRoot, rootName),
 		"-alias", m.caUniqueName(),
 	}
 

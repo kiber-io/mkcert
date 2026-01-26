@@ -124,7 +124,7 @@ mkcert supports the following root stores:
 * Chrome and Chromium
 * Java (when `JAVA_HOME` is set)
 
-To only install the local root CA into a subset of them, use `-trust-stores` (comma-separated list) or set `[trust].stores` in the config. Options are: "system", "java" and "nss" (includes Firefox).
+To only install the local root CA into a subset of them, use `-trust-stores` (comma-separated list) or set `[mkcert].trust_stores` in the config. Options are: "system", "java" and "nss" (includes Firefox).
 
 ## Advanced topics
 
@@ -222,18 +222,19 @@ export NODE_EXTRA_CA_CERTS="$CAROOT/rootCA.pem"
 
 The CA certificate and its key are stored in an application data folder in the user home. You usually don't have to worry about it, as installation is automated.
 
-If you want to manage separate CAs, set `ca_root` under `[paths]` in the config file to set the folder where mkcert will place and look for the local CA files.
+If you want to manage separate CAs, set `ca_root` under `[mkcert]` in the config file to set the folder where mkcert will place and look for the local CA files.
 
-To change the output directory for generated leaf certificates, use `-out-dir` or set `cert_dir` under `[paths]` in the config.
+To change the output directory for generated leaf certificates, use `-out-dir` or set `cert_dir` under `[mkcert]` in the config.
 
 mkcert can also read configuration values from a TOML file named `mkcert.toml` placed next to the executable, or from a custom path using `-config`. The config file uses sections; flags override config values.
 
 Example:
 
 ```
-[paths]
+[mkcert]
 ca_root = "/path/to/ca"
 cert_dir = "/path/to/certs"
+trust_stores = ["system", "nss"]
 
 [ca]
 organization = "My Dev CA"

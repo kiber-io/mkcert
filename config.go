@@ -13,15 +13,15 @@ var (
 )
 
 type config struct {
-	Paths pathsConfig `toml:"paths"`
-	CA    caConfig    `toml:"ca"`
-	Leaf  leafConfig  `toml:"leaf"`
-	Trust trustConfig `toml:"trust"`
+	Mkcert mkcertConfig `toml:"mkcert"`
+	CA     caConfig     `toml:"ca"`
+	Leaf   leafConfig   `toml:"leaf"`
 }
 
-type pathsConfig struct {
-	CAROOT  string `toml:"ca_root"`
-	CERTDIR string `toml:"cert_dir"`
+type mkcertConfig struct {
+	CaRoot      string   `toml:"ca_root"`
+	CertDir     string   `toml:"cert_dir"`
+	TrustStores []string `toml:"trust_stores"`
 }
 
 type caConfig struct {
@@ -43,10 +43,6 @@ type leafConfig struct {
 type leafProfile struct {
 	ValidityDays int      `toml:"validity_days"`
 	KeyUsage     []string `toml:"key_usage"`
-}
-
-type trustConfig struct {
-	Stores []string `toml:"stores"`
 }
 
 func initConfig(path string) error {

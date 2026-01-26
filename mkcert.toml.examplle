@@ -1,10 +1,13 @@
 # mkcert configuration example.
 
-[paths]
+[mkcert]
 # Folder for CA certificate and key.
 ca_root = "./ca"
 # Default output folder for leaf certificates.
 cert_dir = "./certs"
+# Trust stores to install the local root CA into. Options:
+# "system", "java", "nss" (includes Firefox).
+trust_stores = ["system", "nss", "java"]
 
 [ca]
 # Root CA Organization (Subject O).
@@ -42,8 +45,3 @@ validity_days = 180
 # dataEncipherment, keyAgreement, certSign, crlSign, contentCommitment,
 # encipherOnly, decipherOnly.
 key_usage = ["digitalSignature"]
-
-[trust]
-# Trust stores to install the local root CA into. Options:
-# "system", "java", "nss" (includes Firefox).
-stores = ["system", "nss", "java"]

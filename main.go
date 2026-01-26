@@ -142,17 +142,17 @@ func main() {
 		p12NameFlag   = flag.String("p12-file-name", "", "")
 		// Android enforces a 398-day maximum for leaf cert validity.
 		// See https://cs.android.com/android/platform/superproject/main/+/main:external/cronet/tot/net/cert/cert_verify_proc.cc;l=827;drc=61197364367c9e404c7da6900658f1b16c42d0da
-		certDaysFlag  = flag.Int("cert-validity-days", 398, "")
-		configFlag    = flag.String("config", "mkcert.toml", "")
-		caNameFlag    = flag.String("ca-organization", "", "")
+		certDaysFlag     = flag.Int("cert-validity-days", 398, "")
+		configFlag       = flag.String("config", "mkcert.toml", "")
+		caNameFlag       = flag.String("ca-organization", "", "")
 		caCommonNameFlag = flag.String("ca-common-name", "", "")
-		caYearsFlag   = flag.Int("ca-validity-years", 10, "")
-		caOrgUnitFlag = flag.String("ca-org-unit", "", "")
-		genCAFlag     = flag.Bool("generate-ca", false, "")
-		certOrgFlag   = flag.String("cert-org", "", "")
-		certOUFlag    = flag.String("cert-org-unit", "", "")
-		trustStoresFlag = flag.String("trust-stores", "", "")
-		versionFlag   = flag.Bool("version", false, "")
+		caYearsFlag      = flag.Int("ca-validity-years", 10, "")
+		caOrgUnitFlag    = flag.String("ca-org-unit", "", "")
+		genCAFlag        = flag.Bool("generate-ca", false, "")
+		certOrgFlag      = flag.String("cert-org", "", "")
+		certOUFlag       = flag.String("cert-org-unit", "", "")
+		trustStoresFlag  = flag.String("trust-stores", "", "")
+		versionFlag      = flag.Bool("version", false, "")
 	)
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), shortUsage)
@@ -215,8 +215,8 @@ func main() {
 	trustStores = nil
 	if setFlags["trust-stores"] && *trustStoresFlag != "" {
 		trustStores = parseTrustStores(*trustStoresFlag)
-	} else if len(cfg.Trust.Stores) > 0 {
-		trustStores = normalizeTrustStores(cfg.Trust.Stores)
+	} else if len(cfg.Mkcert.TrustStores) > 0 {
+		trustStores = normalizeTrustStores(cfg.Mkcert.TrustStores)
 	}
 
 	certDays := *certDaysFlag
@@ -367,7 +367,7 @@ type mkcert struct {
 	certOrgUnit                string
 	generateCA                 bool
 
-	CAROOT string
+	caRoot string
 	caCert *x509.Certificate
 	caKey  crypto.PrivateKey
 
@@ -378,14 +378,14 @@ type mkcert struct {
 }
 
 func (m *mkcert) Run(args []string) {
-	m.CAROOT = getCAROOT()
-	if m.CAROOT == "" {
+	m.caRoot = getCARoot()
+	if m.caRoot == "" {
 		log.Fatalln("ERROR: failed to find the default CA location, set one as the CAROOT env var")
 	}
-	fatalIfErr(os.MkdirAll(m.CAROOT, 0755), "failed to create the CAROOT")
+	fatalIfErr(os.MkdirAll(m.caRoot, 0755), "failed to create the CAROOT")
 
 	if m.generateCA {
-		if pathExists(filepath.Join(m.CAROOT, rootName)) || pathExists(filepath.Join(m.CAROOT, rootKeyName)) {
+		if pathExists(filepath.Join(m.caRoot, rootName)) || pathExists(filepath.Join(m.caRoot, rootKeyName)) {
 			log.Fatalln("ERROR: local CA already exists; remove it or set CAROOT to a new location")
 		}
 		m.newCA()
@@ -455,10 +455,10 @@ func (m *mkcert) Run(args []string) {
 	m.makeCert(args)
 }
 
-func getCAROOT() string {
+func getCARoot() string {
 	if cfg := getConfig(); cfg != nil {
-		if cfg.Paths.CAROOT != "" {
-			return cfg.Paths.CAROOT
+		if cfg.Mkcert.CaRoot != "" {
+			return cfg.Mkcert.CaRoot
 		}
 	}
 

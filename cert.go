@@ -206,7 +206,7 @@ func (m *mkcert) fileNames(hosts []string) (certFile, keyFile, p12File string) {
 
 	outDir := m.outDir
 	if outDir == "" {
-		outDir = getCERTDIR()
+		outDir = getCertDir()
 	}
 	certName := defaultName + ".pem"
 	if m.certFileName != "" {
@@ -248,9 +248,9 @@ func (m *mkcert) fileNames(hosts []string) (certFile, keyFile, p12File string) {
 	return
 }
 
-func getCERTDIR() string {
+func getCertDir() string {
 	if cfg := getConfig(); cfg != nil {
-		return cfg.Paths.CERTDIR
+		return cfg.Mkcert.CertDir
 	}
 	return ""
 }
@@ -394,11 +394,11 @@ func (m *mkcert) makeCertFromCSR() {
 
 // loadCA will load or create the CA at CAROOT.
 func (m *mkcert) loadCA() {
-	if !pathExists(filepath.Join(m.CAROOT, rootName)) {
+	if !pathExists(filepath.Join(m.caRoot, rootName)) {
 		m.newCA()
 	}
 
-	certPEMBlock, err := os.ReadFile(filepath.Join(m.CAROOT, rootName))
+	certPEMBlock, err := os.ReadFile(filepath.Join(m.caRoot, rootName))
 	fatalIfErr(err, "failed to read the CA certificate")
 	certDERBlock, _ := pem.Decode(certPEMBlock)
 	if certDERBlock == nil || certDERBlock.Type != "CERTIFICATE" {
@@ -407,11 +407,11 @@ func (m *mkcert) loadCA() {
 	m.caCert, err = x509.ParseCertificate(certDERBlock.Bytes)
 	fatalIfErr(err, "failed to parse the CA certificate")
 
-	if !pathExists(filepath.Join(m.CAROOT, rootKeyName)) {
+	if !pathExists(filepath.Join(m.caRoot, rootKeyName)) {
 		return // keyless mode, where only -install works
 	}
 
-	keyPEMBlock, err := os.ReadFile(filepath.Join(m.CAROOT, rootKeyName))
+	keyPEMBlock, err := os.ReadFile(filepath.Join(m.caRoot, rootKeyName))
 	fatalIfErr(err, "failed to read the CA key")
 	keyDERBlock, _ := pem.Decode(keyPEMBlock)
 	if keyDERBlock == nil || keyDERBlock.Type != "PRIVATE KEY" {
@@ -481,11 +481,11 @@ func (m *mkcert) newCA() {
 
 	privDER, err := x509.MarshalPKCS8PrivateKey(priv)
 	fatalIfErr(err, "failed to encode CA key")
-	err = os.WriteFile(filepath.Join(m.CAROOT, rootKeyName), pem.EncodeToMemory(
+	err = os.WriteFile(filepath.Join(m.caRoot, rootKeyName), pem.EncodeToMemory(
 		&pem.Block{Type: "PRIVATE KEY", Bytes: privDER}), 0400)
 	fatalIfErr(err, "failed to save CA key")
 
-	err = os.WriteFile(filepath.Join(m.CAROOT, rootName), pem.EncodeToMemory(
+	err = os.WriteFile(filepath.Join(m.caRoot, rootName), pem.EncodeToMemory(
 		&pem.Block{Type: "CERTIFICATE", Bytes: cert}), 0644)
 	fatalIfErr(err, "failed to save CA certificate")
 

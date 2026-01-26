@@ -88,7 +88,7 @@ func (m *mkcert) checkNSS() bool {
 
 func (m *mkcert) installNSS() bool {
 	if m.forEachNSSProfile(func(profile string) {
-		cmd := exec.Command(certutilPath, "-A", "-d", profile, "-t", "C,,", "-n", m.caUniqueName(), "-i", filepath.Join(m.CAROOT, rootName))
+		cmd := exec.Command(certutilPath, "-A", "-d", profile, "-t", "C,,", "-n", m.caUniqueName(), "-i", filepath.Join(m.caRoot, rootName))
 		out, err := execCertutil(cmd)
 		fatalIfCmdErr(err, "certutil -A -d "+profile, out)
 	}) == 0 {
