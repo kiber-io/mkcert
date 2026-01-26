@@ -1,0 +1,44 @@
+# mkcert configuration example.
+
+[paths]
+# Folder for CA certificate and key.
+ca_root = "./ca"
+# Default output folder for leaf certificates.
+cert_dir = "./certs"
+
+[ca]
+# Root CA Organization (Subject O).
+organization = "My Dev CA"
+# Root CA Common Name (Subject CN). Defaults to `organization` when not set.
+common_name = "My Dev CA"
+# Root CA Organizational Unit (Subject OU).
+organizational_unit = "My Team"
+
+# Root CA validity period. Use one of the options below.
+# validity_days = 3650
+validity_years = 10
+
+[leaf]
+# Leaf certificate Organization (Subject O).
+organization = "My Dev Certs"
+# Leaf certificate Organizational Unit (Subject OU).
+organizational_unit = "Backend Team"
+
+# Leaf certificate defaults in days.
+validity_days = 365
+
+[leaf.server]
+# Leaf server certificate validity in days.
+validity_days = 365
+# Key usage list. Supported values: digitalSignature, keyEncipherment,
+# dataEncipherment, keyAgreement, certSign, crlSign, contentCommitment,
+# encipherOnly, decipherOnly.
+key_usage = ["digitalSignature", "keyEncipherment"]
+
+[leaf.client]
+# Leaf client certificate validity in days.
+validity_days = 180
+# Key usage list. Supported values: digitalSignature, keyEncipherment,
+# dataEncipherment, keyAgreement, certSign, crlSign, contentCommitment,
+# encipherOnly, decipherOnly.
+key_usage = ["digitalSignature"]

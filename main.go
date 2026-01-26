@@ -73,16 +73,23 @@ const advancedUsage = `Advanced options:
 	-cert-validity-days N
 	    Customize the leaf certificate validity period in days.
 
+	-config FILE
+	    Load configuration from the specified TOML file. Defaults to
+	    "mkcert.toml" in the executable directory.
+
 	-csr CSR
 	    Generate a certificate based on the supplied CSR. Conflicts with
 	    all other flags and arguments except -install and -cert-file.
 
-	-CAROOT
-	    Print the CA certificate and key storage location.
-
-	-ca-name NAME
-	    Customize the root CA certificate Common Name and Organization
+	-ca-organization NAME
+	    Customize the root CA certificate Organization
 	    when creating a new local CA.
+
+	-ca-common-name NAME
+	    Customize the root CA certificate Common Name.
+
+	-ca-common-name NAME
+	    Customize the root CA certificate Common Name.
 
 	-ca-validity-years N
 	    Customize the root CA certificate validity period in years.
@@ -133,7 +140,6 @@ func main() {
 		ecdsaFlag     = flag.Bool("ecdsa", false, "")
 		clientFlag    = flag.Bool("client", false, "")
 		helpFlag      = flag.Bool("help", false, "")
-		carootFlag    = flag.Bool("CAROOT", false, "")
 		csrFlag       = flag.String("csr", "", "")
 		certFileFlag  = flag.String("cert-file", "", "")
 		keyFileFlag   = flag.String("key-file", "", "")
@@ -145,7 +151,9 @@ func main() {
 		// Android enforces a 398-day maximum for leaf cert validity.
 		// See https://cs.android.com/android/platform/superproject/main/+/main:external/cronet/tot/net/cert/cert_verify_proc.cc;l=827;drc=61197364367c9e404c7da6900658f1b16c42d0da
 		certDaysFlag  = flag.Int("cert-validity-days", 398, "")
-		caNameFlag    = flag.String("ca-name", "", "")
+		configFlag    = flag.String("config", "mkcert.toml", "")
+		caNameFlag    = flag.String("ca-organization", "", "")
+		caCommonNameFlag = flag.String("ca-common-name", "", "")
 		caYearsFlag   = flag.Int("ca-validity-years", 10, "")
 		caOrgUnitFlag = flag.String("ca-org-unit", "", "")
 		genCAFlag     = flag.Bool("generate-ca", false, "")
@@ -175,13 +183,6 @@ func main() {
 		fmt.Println("(unknown)")
 		return
 	}
-	if *carootFlag {
-		if *installFlag || *uninstallFlag {
-			log.Fatalln("ERROR: you can't set -[un]install and -CAROOT at the same time")
-		}
-		fmt.Println(getCAROOT())
-		return
-	}
 	if *installFlag && *uninstallFlag {
 		log.Fatalln("ERROR: you can't set -install and -uninstall at the same time")
 	}
@@ -206,22 +207,137 @@ func main() {
 	if *genCAFlag && (*installFlag || *uninstallFlag || *csrFlag != "" || flag.NArg() != 0) {
 		log.Fatalln("ERROR: -generate-ca can't be combined with other actions or arguments")
 	}
-	if *certDaysFlag <= 0 {
-		log.Fatalln("ERROR: -cert-validity-days must be a positive integer")
+	if err := initConfig(*configFlag); err != nil {
+		log.Fatalf("ERROR: failed to load config: %s", err)
 	}
-	if *caYearsFlag <= 0 {
-		log.Fatalln("ERROR: -ca-validity-years must be a positive integer")
+
+	setFlags := map[string]bool{}
+	flag.CommandLine.Visit(func(f *flag.Flag) {
+		setFlags[f.Name] = true
+	})
+	cfg := getConfig()
+	if cfg == nil {
+		cfg = &config{}
 	}
+
+	certDays := *certDaysFlag
+	leafServerDays := 0
+	leafClientDays := 0
+	if !setFlags["cert-validity-days"] {
+		if cfg.Leaf.Server.ValidityDays > 0 {
+			leafServerDays = cfg.Leaf.Server.ValidityDays
+		}
+		if cfg.Leaf.Client.ValidityDays > 0 {
+			leafClientDays = cfg.Leaf.Client.ValidityDays
+		}
+		if cfg.Leaf.ValidityDays > 0 {
+			if leafServerDays == 0 {
+				leafServerDays = cfg.Leaf.ValidityDays
+			}
+			if leafClientDays == 0 {
+				leafClientDays = cfg.Leaf.ValidityDays
+			}
+		}
+	}
+	if certDays <= 0 {
+		log.Fatalln("ERROR: cert-validity-days must be a positive integer")
+	}
+
+	caYears := *caYearsFlag
+	caDays := 0
+	caDaysSet := false
+	caYearsSet := false
+	if !setFlags["ca-validity-years"] {
+		if cfg.CA.ValidityDays > 0 {
+			caDays = cfg.CA.ValidityDays
+			caDaysSet = true
+		} else if cfg.CA.ValidityYears > 0 {
+			caYears = cfg.CA.ValidityYears
+			caYearsSet = true
+		}
+	}
+	if caDaysSet && caDays <= 0 {
+		log.Fatalln("ERROR: ca.validity-days must be a positive integer")
+	}
+	if caYearsSet && caYears <= 0 {
+		log.Fatalln("ERROR: ca-validity-years must be a positive integer")
+	}
+	if caDays <= 0 && caYears <= 0 {
+		log.Fatalln("ERROR: ca-validity-years must be a positive integer")
+	}
+
+	caName := *caNameFlag
+	if !setFlags["ca-organization"] {
+		if cfg.CA.Name != "" {
+			caName = cfg.CA.Name
+		}
+	}
+	caCommonName := *caCommonNameFlag
+	if !setFlags["ca-common-name"] {
+		if cfg.CA.CommonName != "" {
+			caCommonName = cfg.CA.CommonName
+		}
+	}
+	caOrgUnit := *caOrgUnitFlag
+	if !setFlags["ca-org-unit"] {
+		if cfg.CA.OrgUnit != "" {
+			caOrgUnit = cfg.CA.OrgUnit
+		}
+	}
+	certOrg := *certOrgFlag
+	if !setFlags["cert-org"] {
+		if cfg.Leaf.Org != "" {
+			certOrg = cfg.Leaf.Org
+		}
+	}
+	certOrgUnit := *certOUFlag
+	if !setFlags["cert-org-unit"] {
+		if cfg.Leaf.OrgUnit != "" {
+			certOrgUnit = cfg.Leaf.OrgUnit
+		}
+	}
+
+	var leafServerKeyUsage x509.KeyUsage
+	var leafClientKeyUsage x509.KeyUsage
+	leafServerKeyUsageSet := false
+	leafClientKeyUsageSet := false
+	if len(cfg.Leaf.Server.KeyUsage) > 0 {
+		ku, err := parseKeyUsage(cfg.Leaf.Server.KeyUsage)
+		if err != nil {
+			log.Fatalf("ERROR: invalid leaf.server.key_usage in config: %s", err)
+		}
+		leafServerKeyUsage = ku
+		leafServerKeyUsageSet = true
+	}
+	if len(cfg.Leaf.Client.KeyUsage) > 0 {
+		ku, err := parseKeyUsage(cfg.Leaf.Client.KeyUsage)
+		if err != nil {
+			log.Fatalf("ERROR: invalid leaf.client.key_usage in config: %s", err)
+		}
+		leafClientKeyUsage = ku
+		leafClientKeyUsageSet = true
+	}
+
 	(&mkcert{
 		installMode: *installFlag, uninstallMode: *uninstallFlag, csrPath: *csrFlag,
 		pkcs12: *pkcs12Flag, ecdsa: *ecdsaFlag, client: *clientFlag,
 		certFile: *certFileFlag, keyFile: *keyFileFlag, p12File: *p12FileFlag,
 		outDir:       *outDirFlag,
 		certFileName: *certNameFlag, keyFileName: *keyNameFlag, p12FileName: *p12NameFlag,
-		certValidityDays: *certDaysFlag,
-		caName: *caNameFlag, caOrgUnit: *caOrgUnitFlag, caValidityYears: *caYearsFlag,
-		certOrg: *certOrgFlag, certOrgUnit: *certOUFlag,
-		generateCA: *genCAFlag,
+		certValidityDays:       certDays,
+		caName:                 caName,
+		caCommonName:           caCommonName,
+		caOrgUnit:              caOrgUnit,
+		caValidityDays:         caDays,
+		certOrg:                certOrg,
+		certOrgUnit:            certOrgUnit,
+		leafServerValidityDays: leafServerDays,
+		leafClientValidityDays: leafClientDays,
+		leafServerKeyUsage:     leafServerKeyUsage,
+		leafServerKeyUsageSet:  leafServerKeyUsageSet,
+		leafClientKeyUsage:     leafClientKeyUsage,
+		leafClientKeyUsageSet:  leafClientKeyUsageSet,
+		generateCA:             *genCAFlag,
 	}).Run(flag.Args())
 }
 
@@ -237,10 +353,17 @@ type mkcert struct {
 	keyFileName                string
 	p12FileName                string
 	certValidityDays           int
+	leafServerValidityDays     int
+	leafClientValidityDays     int
+	leafServerKeyUsage         x509.KeyUsage
+	leafServerKeyUsageSet      bool
+	leafClientKeyUsage         x509.KeyUsage
+	leafClientKeyUsageSet      bool
 	csrPath                    string
 	caName                     string
+	caCommonName               string
 	caOrgUnit                  string
-	caValidityYears            int
+	caValidityDays             int
 	certOrg                    string
 	certOrgUnit                string
 	generateCA                 bool
@@ -336,6 +459,11 @@ func (m *mkcert) Run(args []string) {
 func getCAROOT() string {
 	if env := os.Getenv("CAROOT"); env != "" {
 		return env
+	}
+	if cfg := getConfig(); cfg != nil {
+		if cfg.Paths.CAROOT != "" {
+			return cfg.Paths.CAROOT
+		}
 	}
 
 	var dir string

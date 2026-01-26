@@ -15,6 +15,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"fmt"
 	"log"
 	"math/big"
 	"net"
@@ -55,7 +56,7 @@ func (m *mkcert) makeCert(hosts []string) {
 	fatalIfErr(err, "failed to generate certificate key")
 	pub := priv.(crypto.Signer).Public()
 
-	expiration := time.Now().AddDate(0, 0, m.certValidityDays)
+	expiration := time.Now().AddDate(0, 0, m.leafValidityDays())
 
 	leafOrg := "mkcert development certificate"
 	leafOrgUnit := ""
@@ -76,6 +77,14 @@ func (m *mkcert) makeCert(hosts []string) {
 		NotBefore: time.Now(), NotAfter: expiration,
 
 		KeyUsage: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+	}
+
+	if m.client {
+		if m.leafClientKeyUsageSet {
+			tpl.KeyUsage = m.leafClientKeyUsage
+		}
+	} else if m.leafServerKeyUsageSet {
+		tpl.KeyUsage = m.leafServerKeyUsage
 	}
 
 	if len(hosts) > 0 {
@@ -240,7 +249,13 @@ func (m *mkcert) fileNames(hosts []string) (certFile, keyFile, p12File string) {
 }
 
 func getCERTDIR() string {
-	return os.Getenv("CERTDIR")
+	if env := os.Getenv("CERTDIR"); env != "" {
+		return env
+	}
+	if cfg := getConfig(); cfg != nil {
+		return cfg.Paths.CERTDIR
+	}
+	return ""
 }
 
 func ensureParentDir(path string) error {
@@ -256,6 +271,47 @@ func randomSerialNumber() *big.Int {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	fatalIfErr(err, "failed to generate serial number")
 	return serialNumber
+}
+
+func (m *mkcert) leafValidityDays() int {
+	if m.client && m.leafClientValidityDays > 0 {
+		return m.leafClientValidityDays
+	}
+	if !m.client && m.leafServerValidityDays > 0 {
+		return m.leafServerValidityDays
+	}
+	return m.certValidityDays
+}
+
+func parseKeyUsage(names []string) (x509.KeyUsage, error) {
+	var ku x509.KeyUsage
+	for _, name := range names {
+		n := strings.ToLower(strings.ReplaceAll(name, "_", ""))
+		n = strings.ReplaceAll(n, "-", "")
+		switch n {
+		case "digitalsignature":
+			ku |= x509.KeyUsageDigitalSignature
+		case "keyencipherment":
+			ku |= x509.KeyUsageKeyEncipherment
+		case "dataencipherment":
+			ku |= x509.KeyUsageDataEncipherment
+		case "keyagreement":
+			ku |= x509.KeyUsageKeyAgreement
+		case "certsign":
+			ku |= x509.KeyUsageCertSign
+		case "crlsign":
+			ku |= x509.KeyUsageCRLSign
+		case "contentcommitment", "nonrepudiation":
+			ku |= x509.KeyUsageContentCommitment
+		case "encipheronly":
+			ku |= x509.KeyUsageEncipherOnly
+		case "decipheronly":
+			ku |= x509.KeyUsageDecipherOnly
+		default:
+			return 0, fmt.Errorf("unknown key usage %q", name)
+		}
+	}
+	return ku, nil
 }
 
 func (m *mkcert) makeCertFromCSR() {
@@ -277,7 +333,7 @@ func (m *mkcert) makeCertFromCSR() {
 	fatalIfErr(err, "failed to parse the CSR")
 	fatalIfErr(csr.CheckSignature(), "invalid CSR signature")
 
-	expiration := time.Now().AddDate(0, 0, m.certValidityDays)
+	expiration := time.Now().AddDate(0, 0, m.leafValidityDays())
 	tpl := &x509.Certificate{
 		SerialNumber:    randomSerialNumber(),
 		Subject:         csr.Subject,
@@ -294,6 +350,14 @@ func (m *mkcert) makeCertFromCSR() {
 		// platforms require serverAuth for TLS.
 		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+
+	if m.client {
+		if m.leafClientKeyUsageSet {
+			tpl.KeyUsage = m.leafClientKeyUsage
+		}
+	} else if m.leafServerKeyUsageSet {
+		tpl.KeyUsage = m.leafServerKeyUsage
 	}
 
 	if m.client {
@@ -382,6 +446,10 @@ func (m *mkcert) newCA() {
 	orgUnit := userAndHostname
 	if m.caName != "" {
 		caName = m.caName
+	}
+	if m.caCommonName != "" {
+		commonName = m.caCommonName
+	} else if m.caName != "" {
 		commonName = m.caName
 	}
 	if m.caOrgUnit != "" {
@@ -401,7 +469,7 @@ func (m *mkcert) newCA() {
 		},
 		SubjectKeyId: skid[:],
 
-		NotAfter:  time.Now().AddDate(m.caValidityYears, 0, 0),
+		NotAfter:  time.Now().AddDate(0, 0, m.caValidityDays),
 		NotBefore: time.Now(),
 
 		KeyUsage: x509.KeyUsageCertSign,

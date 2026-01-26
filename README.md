@@ -153,13 +153,20 @@ To only install the local root CA into a subset of them, you can set the `TRUST_
 	-cert-validity-days N
 	    Customize the leaf certificate validity period in days.
 
+	-config FILE
+	    Load configuration from the specified TOML file. Defaults to
+	    "mkcert.toml" in the executable directory.
+
 	-csr CSR
 	    Generate a certificate based on the supplied CSR. Conflicts with
 	    all other flags and arguments except -install and -cert-file.
 
-	-ca-name NAME
-	    Customize the root CA certificate Common Name and Organization
+	-ca-organization NAME
+	    Customize the root CA certificate Organization
 	    when creating a new local CA.
+
+	-ca-common-name NAME
+	    Customize the root CA certificate Common Name.
 
 	-ca-validity-years N
 	    Customize the root CA certificate validity period in years.
@@ -197,7 +204,7 @@ mkcert filippo@example.com
 
 ### Mobile devices
 
-For the certificates to be trusted on mobile devices, you will have to install the root CA. It's the `rootCA.pem` file in the folder printed by `mkcert -CAROOT`.
+For the certificates to be trusted on mobile devices, you will have to install the root CA. It's the `rootCA.pem` file in the CAROOT directory (from `$CAROOT` or config; defaults to the platform-specific app data location).
 
 On iOS, you can either use AirDrop, email the CA to yourself, or serve it from an HTTP server. After opening it, you need to [install the profile in Settings > Profile Downloaded](https://github.com/FiloSottile/mkcert/issues/233#issuecomment-690110809) and then [enable full trust in it](https://support.apple.com/en-nz/HT204477).
 
@@ -208,22 +215,51 @@ For Android, you will have to install the CA and then enable user roots in the d
 Node does not use the system root store, so it won't accept mkcert certificates automatically. Instead, you will have to set the [`NODE_EXTRA_CA_CERTS`](https://nodejs.org/api/cli.html#cli_node_extra_ca_certs_file) environment variable.
 
 ```
-export NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"
+export NODE_EXTRA_CA_CERTS="$CAROOT/rootCA.pem"
 ```
 
 ### Changing the location of the CA files
 
-The CA certificate and its key are stored in an application data folder in the user home. You usually don't have to worry about it, as installation is automated, but the location is printed by `mkcert -CAROOT`.
+The CA certificate and its key are stored in an application data folder in the user home. You usually don't have to worry about it, as installation is automated.
 
-If you want to manage separate CAs, you can use the environment variable `$CAROOT` to set the folder where mkcert will place and look for the local CA files.
+If you want to manage separate CAs, you can use the environment variable `$CAROOT` or set `ca_root` under `[paths]` in the config file to set the folder where mkcert will place and look for the local CA files.
 
-To change the output directory for generated leaf certificates, use `-out-dir` or set the `$CERTDIR` environment variable.
+To change the output directory for generated leaf certificates, use `-out-dir` or set the `$CERTDIR` environment variable (or `cert_dir` under `[paths]` in the config).
+
+mkcert can also read configuration values from a TOML file named `mkcert.toml` placed next to the executable, or from a custom path using `-config`. The config file uses sections; flags override config values.
+
+Example:
+
+```
+[paths]
+ca_root = "/path/to/ca"
+cert_dir = "/path/to/certs"
+
+[ca]
+organization = "My Dev CA"
+common_name = "My Dev CA"
+organizational_unit = "My Team"
+validity_days = 3650
+
+[leaf]
+organization = "My Dev Certs"
+organizational_unit = "Backend Team"
+
+[leaf.server]
+validity_days = 365
+key_usage = ["digitalSignature", "keyEncipherment"]
+
+[leaf.client]
+validity_days = 180
+key_usage = ["digitalSignature"]
+```
+
 
 ### Installing the CA on other systems
 
 Installing in the trust store does not require the CA key, so you can export the CA certificate and use mkcert to install it in other machines.
 
-* Look for the `rootCA.pem` file in `mkcert -CAROOT`
+* Look for the `rootCA.pem` file in the CAROOT directory (`$CAROOT` or config)
 * copy it to a different machine
 * set `$CAROOT` to its directory
 * run `mkcert -install`
