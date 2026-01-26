@@ -55,10 +55,7 @@ func (m *mkcert) makeCert(hosts []string) {
 	fatalIfErr(err, "failed to generate certificate key")
 	pub := priv.(crypto.Signer).Public()
 
-	// Certificates last for 2 years and 3 months, which is always less than
-	// 825 days, the limit that macOS/iOS apply to all certificates,
-	// including custom roots. See https://support.apple.com/en-us/HT210176.
-	expiration := time.Now().AddDate(2, 3, 0)
+	expiration := time.Now().AddDate(0, 0, m.certValidityDays)
 
 	leafOrg := "mkcert development certificate"
 	leafOrgUnit := ""
@@ -280,7 +277,7 @@ func (m *mkcert) makeCertFromCSR() {
 	fatalIfErr(err, "failed to parse the CSR")
 	fatalIfErr(csr.CheckSignature(), "invalid CSR signature")
 
-	expiration := time.Now().AddDate(2, 3, 0)
+	expiration := time.Now().AddDate(0, 0, m.certValidityDays)
 	tpl := &x509.Certificate{
 		SerialNumber:    randomSerialNumber(),
 		Subject:         csr.Subject,

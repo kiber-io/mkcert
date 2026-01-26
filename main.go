@@ -70,6 +70,9 @@ const advancedUsage = `Advanced options:
 	    Generate a ".p12" PKCS #12 file, also know as a ".pfx" file,
 	    containing certificate and key for legacy applications.
 
+	-cert-validity-days N
+	    Customize the leaf certificate validity period in days.
+
 	-csr CSR
 	    Generate a certificate based on the supplied CSR. Conflicts with
 	    all other flags and arguments except -install and -cert-file.
@@ -139,6 +142,9 @@ func main() {
 		certNameFlag  = flag.String("cert-file-name", "", "")
 		keyNameFlag   = flag.String("key-file-name", "", "")
 		p12NameFlag   = flag.String("p12-file-name", "", "")
+		// Android enforces a 398-day maximum for leaf cert validity.
+		// See https://cs.android.com/android/platform/superproject/main/+/main:external/cronet/tot/net/cert/cert_verify_proc.cc;l=827;drc=61197364367c9e404c7da6900658f1b16c42d0da
+		certDaysFlag  = flag.Int("cert-validity-days", 398, "")
 		caNameFlag    = flag.String("ca-name", "", "")
 		caYearsFlag   = flag.Int("ca-validity-years", 10, "")
 		caOrgUnitFlag = flag.String("ca-org-unit", "", "")
@@ -185,6 +191,9 @@ func main() {
 	if *csrFlag != "" && flag.NArg() != 0 {
 		log.Fatalln("ERROR: can't specify extra arguments when using -csr")
 	}
+	if (*certNameFlag != "" || *keyNameFlag != "" || *p12NameFlag != "") && *outDirFlag == "" {
+		log.Fatalln("ERROR: -cert-file-name, -key-file-name, and -p12-file-name require -out-dir")
+	}
 	if *certFileFlag != "" && *certNameFlag != "" {
 		log.Fatalln("ERROR: can't combine -cert-file and -cert-file-name")
 	}
@@ -197,6 +206,9 @@ func main() {
 	if *genCAFlag && (*installFlag || *uninstallFlag || *csrFlag != "" || flag.NArg() != 0) {
 		log.Fatalln("ERROR: -generate-ca can't be combined with other actions or arguments")
 	}
+	if *certDaysFlag <= 0 {
+		log.Fatalln("ERROR: -cert-validity-days must be a positive integer")
+	}
 	if *caYearsFlag <= 0 {
 		log.Fatalln("ERROR: -ca-validity-years must be a positive integer")
 	}
@@ -206,6 +218,7 @@ func main() {
 		certFile: *certFileFlag, keyFile: *keyFileFlag, p12File: *p12FileFlag,
 		outDir:       *outDirFlag,
 		certFileName: *certNameFlag, keyFileName: *keyNameFlag, p12FileName: *p12NameFlag,
+		certValidityDays: *certDaysFlag,
 		caName: *caNameFlag, caOrgUnit: *caOrgUnitFlag, caValidityYears: *caYearsFlag,
 		certOrg: *certOrgFlag, certOrgUnit: *certOUFlag,
 		generateCA: *genCAFlag,
@@ -223,6 +236,7 @@ type mkcert struct {
 	certFileName               string
 	keyFileName                string
 	p12FileName                string
+	certValidityDays           int
 	csrPath                    string
 	caName                     string
 	caOrgUnit                  string

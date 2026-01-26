@@ -150,6 +150,9 @@ To only install the local root CA into a subset of them, you can set the `TRUST_
 	    Generate a ".p12" PKCS #12 file, also know as a ".pfx" file,
 	    containing certificate and key for legacy applications.
 
+	-cert-validity-days N
+	    Customize the leaf certificate validity period in days.
+
 	-csr CSR
 	    Generate a certificate based on the supplied CSR. Conflicts with
 	    all other flags and arguments except -install and -cert-file.
