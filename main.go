@@ -380,13 +380,13 @@ type mkcert struct {
 func (m *mkcert) Run(args []string) {
 	m.caRoot = getCARoot()
 	if m.caRoot == "" {
-		log.Fatalln("ERROR: failed to find the default CA location, set one as the CAROOT env var")
+		log.Fatalln("ERROR: failed to find the default CA location; set mkcert.ca_root in the config")
 	}
 	fatalIfErr(os.MkdirAll(m.caRoot, 0755), "failed to create the CAROOT")
 
 	if m.generateCA {
 		if pathExists(filepath.Join(m.caRoot, rootName)) || pathExists(filepath.Join(m.caRoot, rootKeyName)) {
-			log.Fatalln("ERROR: local CA already exists; remove it or set CAROOT to a new location")
+			log.Fatalln("ERROR: local CA already exists; remove it or set mkcert.ca_root to a new location")
 		}
 		m.newCA()
 		return

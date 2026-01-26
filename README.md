@@ -204,7 +204,7 @@ mkcert filippo@example.com
 
 ### Mobile devices
 
-For the certificates to be trusted on mobile devices, you will have to install the root CA. It's the `rootCA.pem` file in the CAROOT directory (from `$CAROOT` or config; defaults to the platform-specific app data location).
+For the certificates to be trusted on mobile devices, you will have to install the root CA. It's the `rootCA.pem` file in the CAROOT directory (from config; defaults to the platform-specific app data location).
 
 On iOS, you can either use AirDrop, email the CA to yourself, or serve it from an HTTP server. After opening it, you need to [install the profile in Settings > Profile Downloaded](https://github.com/FiloSottile/mkcert/issues/233#issuecomment-690110809) and then [enable full trust in it](https://support.apple.com/en-nz/HT204477).
 
@@ -215,7 +215,7 @@ For Android, you will have to install the CA and then enable user roots in the d
 Node does not use the system root store, so it won't accept mkcert certificates automatically. Instead, you will have to set the [`NODE_EXTRA_CA_CERTS`](https://nodejs.org/api/cli.html#cli_node_extra_ca_certs_file) environment variable.
 
 ```
-export NODE_EXTRA_CA_CERTS="$CAROOT/rootCA.pem"
+export NODE_EXTRA_CA_CERTS="/path/to/ca/rootCA.pem"
 ```
 
 ### Changing the location of the CA files
@@ -260,9 +260,9 @@ key_usage = ["digitalSignature"]
 
 Installing in the trust store does not require the CA key, so you can export the CA certificate and use mkcert to install it in other machines.
 
-* Look for the `rootCA.pem` file in the CAROOT directory (`$CAROOT` or config)
+* Look for the `rootCA.pem` file in the CAROOT directory (from config)
 * copy it to a different machine
-* set `$CAROOT` to its directory
+* set `mkcert.ca_root` in the config to its directory
 * run `mkcert -install`
 
 Remember that mkcert is meant for development purposes, not production, so it should not be used on end users' machines, and that you should *not* export or share `rootCA-key.pem`.
